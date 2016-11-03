@@ -34,6 +34,11 @@ dfAll['minute'] = dateTime[:,4]
 dfAll['second'] = dateTime[:,5]
 #remove date and time account created
 dfAll = dfAll.drop(['Dates'], axis=1)
-#change categorical variable to numerical
-dfAll['weekday'] = dfAll['DayOfWeek'].astype(
+#change categorical variable to numerical, not using get_dummies
+dfAll['Weekday'] = dfAll['DayOfWeek'].astype(
+    'category').cat.codes.astype(float)
+dfAll = dfAll.drop(['DayOfWeek'], axis = 1)
+dfAll['PdDistrict'] = dfAll['PdDistrict'].astype(
+    'category').cat.codes.astype(float)
+dfAll['Address'] = dfAll['Address'].astype(
     'category').cat.codes.astype(float)
