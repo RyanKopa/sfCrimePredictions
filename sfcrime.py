@@ -42,3 +42,20 @@ dfAll['PdDistrict'] = dfAll['PdDistrict'].astype(
     'category').cat.codes.astype(float)
 dfAll['Address'] = dfAll['Address'].astype(
     'category').cat.codes.astype(float)
+
+#splitting training and test sets
+vals = dfAll.values
+X = vals[:piv_train]
+le = LabelEncoder()
+y = le.fit_transform(labels)
+X_test = vals[piv_train:]
+
+xgb = XGBClassifier(max_depth=6, learning_rate=0.2, n_estimators=25,
+                    objective='multi:softprob',
+                    subsample=0.5, colsample_bytree=0.5, seed=0)
+
+xgb.fit(X, y)
+#predicts coresponding class labels in the case of classification
+#predicts the probability of a user belonging to a class (country)
+#outputs a numpy array of shape (n_samples, n_classes)
+print (xgb.score(X,y))
