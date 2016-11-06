@@ -2,11 +2,14 @@
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
-from xgboost.sklearn import XGBClassifier
+import xgboost as xgb
+from sklearn.cross_validation import train_test_split
 
 np.random.seed(0)
 #test and train data
 dfTrain = pd.read_csv('train.csv')
+dfTrain = dfTrain.sort_values(by=u'Category', ascending=1)
+
 dfTest = pd.read_csv('test.csv')
 
 #categories predicted for
@@ -44,20 +47,52 @@ dfAll['PdDistrict'] = dfAll['PdDistrict'].astype(
 dfAll['Address'] = dfAll['Address'].astype(
     'category').cat.codes.astype(float)
 
+
+def set_param():
+    # setup parameters for xgboost
+    param = {}
+    param['objective'] = 'multi:softprob'
+    param['eta'] = 0.4
+    param['silent'] = 0
+    param['nthread'] = 4
+    param['num_class'] = len(np.unique(labels))
+    param['eval_metric'] = 'mlogloss'
+    # Model complexity
+    param['max_depth'] = 8 #set to 8
+    param['min_child_weight'] = 1
+    param['gamma'] = 0
+    param['reg_alfa'] = 0.05
+    param['subsample'] = 0.8
+    param['colsample_bytree'] = 0.8 #set to 1
+    # Imbalanced data
+    param['max_delta_step'] = 1
+    return param
+
 #splitting training and test sets
 vals = dfAll.values
 X = vals[:piv_train]
+X_test = vals[piv_train:]
 le = LabelEncoder()
 y = le.fit_transform(labels)
-X_test = vals[piv_train:]
 
-xgb = XGBClassifier(max_depth=6, learning_rate=0.2, n_estimators=25,
-                    objective='multi:softprob',
-                    subsample=0.5, colsample_bytree=0.5, seed=0)
+trainMatrix = xgb.DMatrix(X, label = y)
+testMatrix = xgb.DMatrix(X_test)
 
-xgb.fit(X, y)
-#predicts coresponding class labels in the case of classification
-#predicts the probability of a user belonging to a class (country)
-#outputs a numpy array of shape (n_samples, n_classes)
-print (xgb.score(X,y))
-#0.304521729425 is the score
+num_class = len(np.unique(labels))
+
+param = set_param()
+watchlist = [(trainMatrix,'train'), (trainMatrix,'eval')]
+num_round = 10
+
+#train xgb
+model = xgb.train(param, trainMatrix, num_round, watchlist);
+yprob = model.predict(testMatrix).reshape(X_test.shape[0], num_class)
+# ylabel = np.argmax(yprob, axis = 1)
+
+ids = np.linspace(1,X_test.shape[0],X_test.shape[0])
+
+#Generate submission
+finalLabels = np.insert(labels, 0, 'Id')
+sub = pd.DataFrame(np.column_stack((ids, yprob)),
+    columns=finalLabels)
+sub.to_csv('sub.csv',index=False)

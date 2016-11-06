@@ -1,4 +1,3 @@
-# www.kaggle.com/keldibek/sf-crime/xgboost-crime-classification/notebook
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
@@ -36,11 +35,11 @@ dfAll['second'] = dateTime[:,5]
 #remove date and time account created
 dfAll = dfAll.drop(['Dates'], axis=1)
 #change categorical variable to numerical, not using get_dummies
-dfAll['Weekday'] = dfAll['DayOfWeek'].astype(
-    'category').cat.codes.astype(float)
-dfAll = dfAll.drop(['DayOfWeek'], axis = 1)
-dfAll['PdDistrict'] = dfAll['PdDistrict'].astype(
-    'category').cat.codes.astype(float)
+ohe_feats = ['DayOfWeek', 'PdDistrict']
+for f in ohe_feats:
+    dfAll_dummy = pd.get_dummies(dfAll[f], prefix=f)
+    dfAll = dfAll.drop([f], axis=1)
+    dfAll = pd.concat((dfAll, dfAll_dummy), axis=1)
 dfAll['Address'] = dfAll['Address'].astype(
     'category').cat.codes.astype(float)
 
@@ -51,13 +50,20 @@ le = LabelEncoder()
 y = le.fit_transform(labels)
 X_test = vals[piv_train:]
 
+
+
 xgb = XGBClassifier(max_depth=6, learning_rate=0.2, n_estimators=25,
                     objective='multi:softprob',
                     subsample=0.5, colsample_bytree=0.5, seed=0)
 
 xgb.fit(X, y)
-#predicts coresponding class labels in the case of classification
-#predicts the probability of a user belonging to a class (country)
-#outputs a numpy array of shape (n_samples, n_classes)
 print (xgb.score(X,y))
-#0.304521729425 is the score
+# Can't encode with get_dummies for all categorical variables
+# because too many different unique addresses values
+# When dropping addresses and encoding DayOfWeek and PdDistrict
+# with get_dummies, get a score of:
+# score = 0.29543681503
+#
+# When encoded addresses with changing the categorical variable
+# to float, get a score of:
+# score = 0.30321200753
