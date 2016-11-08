@@ -89,10 +89,11 @@ model = xgb.train(param, trainMatrix, num_round, watchlist);
 yprob = model.predict(testMatrix).reshape(X_test.shape[0], num_class)
 # ylabel = np.argmax(yprob, axis = 1)
 
-ids = np.linspace(1,X_test.shape[0],X_test.shape[0])
+ids = np.linspace(0,X_test.shape[0],X_test.shape[0], dtype = int)
 
 #Generate submission
-finalLabels = np.insert(labels, 0, 'Id')
+finalLabels = np.insert(np.unique(labels), 0, 'Id')
 sub = pd.DataFrame(np.column_stack((ids, yprob)),
     columns=finalLabels)
+sub.Id = sub.Id.astype(int)
 sub.to_csv('sub.csv',index=False)
