@@ -81,7 +81,7 @@ testMatrix = xgb.DMatrix(X_test)
 num_class = len(np.unique(labels))
 
 param = set_param()
-watchlist = [(trainMatrix,'train'), (trainMatrix,'eval')]
+watchlist = [(trainMatrix,'trainEval')]
 num_round = 10
 
 #train xgb
