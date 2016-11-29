@@ -1,4 +1,16 @@
 # www.kaggle.com/keldibek/sf-crime/xgboost-crime-classification/notebook
+
+#Python Model used to predict the classification of a crime, given the location and time of a crime scene
+#based on the data provided by Kaggle.
+#
+#Input: train.csv and test.csv provided by Kaggle
+#Output: submission.csv, a csv file that lists the id of each reported crime and a list of probabilities 
+#of the likeliness that the reported crime fits a given classification.
+
+#Notes for future improvements:
+#Cross validation for building the model
+#Iteration mode to determine the best depth for the model (best number for num_round)
+
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
@@ -96,4 +108,4 @@ finalLabels = np.insert(np.unique(labels), 0, 'Id')
 sub = pd.DataFrame(np.column_stack((ids, yprob)),
     columns=finalLabels)
 sub.Id = sub.Id.astype(int)
-sub.to_csv('sub.csv',index=False)
+sub.to_csv('submission.csv',index=False)
