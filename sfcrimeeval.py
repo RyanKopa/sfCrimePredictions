@@ -1,23 +1,27 @@
 # www.kaggle.com/keldibek/sf-crime/xgboost-crime-classification/notebook
 #
-#Python Model used to predict the classification of a crime, given the location and time of a crime scene
-#based on the data provided by Kaggle.
+#Python Model used to predict the classification of a crime,
+# given the location and time of a crime scene
+# based on the data provided by Kaggle.
 #
 #Input: train.csv and test.csv provided by Kaggle
-#Output: submission.csv, a csv file that lists the id of each reported crime and a list of probabilities 
+#Output: submission.csv, a csv file that lists the id of each
+# reported crime and a list of probabilities
 #of the likeliness that the reported crime fits a given classification.
 #
 #Notes for future improvements:
 #Cross validation for building the model
-#Iteration mode to determine the best depth for the model (best number for num_round)
+# Iteration mode to determine the best depth for the model
+#(best number for num_round)
+
+# pylint: disable=C0103
+# pylint: disable=E1101
 
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
 import xgboost as xgb
-from sklearn.cross_validation import train_test_split
 
-np.random.seed(0)
 #test and train data
 dfTrain = pd.read_csv('train.csv')
 dfTrain = dfTrain.sort_values(by=u'Category', ascending=1)
@@ -28,32 +32,32 @@ dfTest = pd.read_csv('test.csv')
 labels = dfTrain[u'Category'].values
 #drop data not used in model
 dfTrain = dfTrain.drop([u'Category'], axis=1)
-dfTrain = dfTrain.drop([u'Descript'], axis = 1)
-dfTrain = dfTrain.drop([u'Resolution'], axis = 1)
+dfTrain = dfTrain.drop([u'Descript'], axis=1)
+dfTrain = dfTrain.drop([u'Resolution'], axis=1)
 #test id's for model
 idTest = dfTest[u'Id']
-dfTest = dfTest.drop([u'Id'], axis = 1)
+dfTest = dfTest.drop([u'Id'], axis=1)
 piv_train = dfTrain.shape[0]
 
 #combine testing and training sets for data wrangling
 dfAll = pd.concat((dfTrain, dfTest), axis=0, ignore_index=True)
 
 dateTime = np.vstack(dfAll.Dates.astype(str).apply(
-    lambda x: list(map(float, x.replace('-',' ')
-        .replace(':', ' ').split(' ')))).values)
+    lambda x: list(map(float, x.replace('-', ' ')
+                       .replace(':', ' ').split(' ')))).values)
 #change time and date to a more continuous format
-dfAll['year'] = dateTime[:,0]
-dfAll['month'] = dateTime[:,1]
-dfAll['day'] = dateTime[:,2]
-dfAll['hour'] = dateTime[:,3]
-dfAll['minute'] = dateTime[:,4]
-dfAll['second'] = dateTime[:,5]
+dfAll['year'] = dateTime[:, 0]
+dfAll['month'] = dateTime[:, 1]
+dfAll['day'] = dateTime[:, 2]
+dfAll['hour'] = dateTime[:, 3]
+dfAll['minute'] = dateTime[:, 4]
+dfAll['second'] = dateTime[:, 5]
 #remove date and time account created
 dfAll = dfAll.drop(['Dates'], axis=1)
 #change categorical variable to numerical, not using get_dummies
 dfAll['Weekday'] = dfAll['DayOfWeek'].astype(
     'category').cat.codes.astype(float)
-dfAll = dfAll.drop(['DayOfWeek'], axis = 1)
+dfAll = dfAll.drop(['DayOfWeek'], axis=1)
 dfAll['PdDistrict'] = dfAll['PdDistrict'].astype(
     'category').cat.codes.astype(float)
 dfAll['Address'] = dfAll['Address'].astype(
@@ -61,16 +65,18 @@ dfAll['Address'] = dfAll['Address'].astype(
 
 
 def set_param():
-    # setup parameters for xgboost
+    #The setup parameters for xgboost classifier
+    #Parameters were chosen after using GridSearchCV
     param = {}
     param['objective'] = 'multi:softprob'
     param['eta'] = 0.4
     param['silent'] = 0
     param['nthread'] = 4
     param['num_class'] = len(np.unique(labels))
-    param['eval_metric'] = 'mlogloss'
+    param['eval_metric'] = 'merror' #mlogloss
     # Model complexity
     param['max_depth'] = 8 #set to 8
+    # param['learning_rate'] = 0.1 #delete
     param['min_child_weight'] = 1
     param['gamma'] = 0
     param['reg_alfa'] = 0.05
@@ -87,25 +93,25 @@ X_test = vals[piv_train:]
 le = LabelEncoder()
 y = le.fit_transform(labels)
 
-trainMatrix = xgb.DMatrix(X, label = y)
+trainMatrix = xgb.DMatrix(X, label=y)
 testMatrix = xgb.DMatrix(X_test)
 
 num_class = len(np.unique(labels))
 
 param = set_param()
-watchlist = [(trainMatrix,'trainEval')]
+watchlist = [(trainMatrix, 'trainEval')]
 num_round = 10
 
 #train xgb
-model = xgb.train(param, trainMatrix, num_round, watchlist);
-yprob = model.predict(testMatrix).reshape(X_test.shape[0], num_class)
+trainedModel = xgb.train(param, trainMatrix, num_round, watchlist)
+label_probability = trainedModel.predict(testMatrix).reshape(X_test.shape[0], num_class)
 # ylabel = np.argmax(yprob, axis = 1)
 
-ids = np.linspace(0,X_test.shape[0],X_test.shape[0], dtype = int)
-
+ids = np.linspace(0, X_test.shape[0], X_test.shape[0], dtype=int)
+ids[-1] = ids[-1] - 1
 #Generate submission
-finalLabels = np.insert(np.unique(labels), 0, 'Id')
-sub = pd.DataFrame(np.column_stack((ids, yprob)),
-    columns=finalLabels)
-sub.Id = sub.Id.astype(int)
-sub.to_csv('submission.csv',index=False)
+Final_Labels = np.insert(np.unique(labels), 0, 'Id')
+SUBMISSION = pd.DataFrame(np.column_stack((ids, label_probability)),
+                          columns=Final_Labels)
+SUBMISSION.Id = SUBMISSION.Id.astype(int)
+SUBMISSION.to_csv('submissionNew.csv', index=False)
