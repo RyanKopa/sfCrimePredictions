@@ -9,3 +9,5 @@ Numpy
 Pandas
 XGBoost
 Scikit-learn
+
+Data was provided by the City of San Francisco.  The script sfcrimeeval.py results with a logloss score of 2.36781, which ranks at 487/2335.
